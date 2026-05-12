@@ -36,7 +36,7 @@ const messages: Record<Language, Record<string, string>> = {
     firstMessage: 'First Message',
     none: '(None)',
     // 快捷键提示
-    shortcuts: '[e] Export  [a] Analyze  [b] Back  [h] Home  [q] Quit',
+    shortcuts: '[e] Export  [E] Format  [a] Analyze  [d] Delete  [b] Back  [h] Home  [q] Quit',
     shortcutsSearch: '[Esc] Clear  [Enter] Select',
     // 项目浏览相关
     browseProjects: 'Browse Projects',
@@ -88,6 +88,10 @@ const messages: Record<Language, Record<string, string>> = {
     matched: 'matched',
     useLongerPrefix: 'Please use a longer prefix to uniquely identify the conversation.',
     exportFailed: 'Export failed',
+    deleteConversationConfirm: 'Delete this conversation permanently? [y/n]',
+    deleteCancelled: 'Deletion cancelled.',
+    deleteSuccess: 'Conversation deleted.',
+    deleteFailed: 'Delete failed',
     failedToCalculate: 'Failed to calculate statistics',
     failedToScan: 'Failed to scan conversations',
     andMore: 'and',
@@ -195,7 +199,7 @@ const messages: Record<Language, Record<string, string>> = {
     firstMessage: '首条消息',
     none: '(无)',
     // 快捷键提示
-    shortcuts: '[e] 导出  [a] 分析  [b] 返回  [h] 首页  [q] 退出',
+    shortcuts: '[e] 快速导出  [E] 选择格式  [a] 分析  [d] 删除  [b] 返回  [h] 首页  [q] 退出',
     shortcutsSearch: '[Esc] 清除  [回车] 选择',
     // 项目浏览相关
     browseProjects: '浏览项目',
@@ -247,6 +251,10 @@ const messages: Record<Language, Record<string, string>> = {
     matched: '匹配了',
     useLongerPrefix: '请使用更长的前缀来唯一标识对话。',
     exportFailed: '导出失败',
+    deleteConversationConfirm: '确定永久删除该对话？（含子代理目录）[y/n]',
+    deleteCancelled: '已取消删除。',
+    deleteSuccess: '对话已删除。',
+    deleteFailed: '删除失败',
     failedToCalculate: '计算统计失败',
     failedToScan: '扫描对话失败',
     andMore: '以及',

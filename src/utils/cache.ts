@@ -93,3 +93,12 @@ export function setCacheEntry(filePath: string, entry: CacheEntry): void {
   cache.entries[filePath] = entry;
   isDirty = true;
 }
+
+// 删除缓存条目（对话文件已删除时调用）
+export function removeCacheEntry(filePath: string): void {
+  if (!cache) return;
+  if (filePath in cache.entries) {
+    delete cache.entries[filePath];
+    isDirty = true;
+  }
+}

@@ -11,6 +11,7 @@ import type { Project, ConversationSummary, ExportOptions } from '../models/type
 import { showBanner } from './banner.js';
 import { getLanguage, getActiveLLMProvider } from '../utils/settings.js';
 import { waitForKeypress, isCtrlC, beginRender, printLine, flushRender } from '../utils/terminal.js';
+import { deleteConversationFromDisk, removeConversationFromProject } from '../core/conversation-delete.js';
 
 // 获取当前语言
 function getLang(): Language {
@@ -201,6 +202,28 @@ async function exportWithOptions(
   await waitForKeypress();
 }
 
+// 确认后删除本地对话文件
+async function confirmAndDelete(project: Project, conv: ConversationSummary): Promise<void> {
+  const lang = getLang();
+  console.log();
+  console.log(chalk.yellow(`  ${t('deleteConversationConfirm', lang)}`));
+  const key = await waitForKeypress();
+  if (key.toLowerCase() !== 'y') {
+    console.log(chalk.gray(`  ${t('deleteCancelled', lang)}`));
+    await waitForKeypress();
+    return;
+  }
+  try {
+    await deleteConversationFromDisk(project, conv);
+    removeConversationFromProject(project, conv);
+    console.log(chalk.green(`  ${t('deleteSuccess', lang)}`));
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.log(chalk.red(`  ${t('deleteFailed', lang)}: ${errMsg}`));
+  }
+  await waitForKeypress();
+}
+
 // 渲染对话列表界面
 function renderList(
   project: Project,
@@ -275,7 +298,10 @@ function renderList(
   // 快捷键提示
   printLine(chalk.gray(searchTerm ? t('shortcutsSearch', getLang()) : t('shortcuts', getLang())));
 
-  flushRender();
+  // 缓冲区超出终端高度时保留末尾：列表与信息区之间的空行 + 信息面板 + 底部快捷键
+  const tailLines =
+    conversations.length > 0 ? 12 : 3;
+  flushRender({ preserveTailLines: tailLines });
 }
 
 // 主函数：显示对话列表
@@ -382,6 +408,19 @@ export async function showConversationList(
         default:
           // 字符按键
           if (str) {
+            // 大写 E：选择导出格式（须在 toLowerCase 之前判断，否则与 e 混淆）
+            if (str === 'E' && !key.ctrl && !key.meta) {
+              if (filteredConversations.length > 0) {
+                process.stdin.removeListener('keypress', handleKeypress);
+                process.stdin.setRawMode(false);
+                await exportWithOptions(project, filteredConversations[selectedIndex]);
+                process.stdin.setRawMode(true);
+                process.stdin.on('keypress', handleKeypress);
+                renderList(project, filteredConversations, selectedIndex, searchTerm);
+              }
+              return;
+            }
+
             const char = str.toLowerCase();
 
             // 数字快捷选择 1-9
@@ -422,21 +461,26 @@ export async function showConversationList(
                   renderList(project, filteredConversations, selectedIndex, searchTerm);
                 }
                 break;
-              case 'E':
-                if (filteredConversations.length > 0) {
-                  process.stdin.removeListener('keypress', handleKeypress);
-                  process.stdin.setRawMode(false);
-                  await exportWithOptions(project, filteredConversations[selectedIndex]);
-                  process.stdin.setRawMode(true);
-                  process.stdin.on('keypress', handleKeypress);
-                  renderList(project, filteredConversations, selectedIndex, searchTerm);
-                }
-                break;
               case 'a':
                 if (filteredConversations.length > 0) {
                   process.stdin.removeListener('keypress', handleKeypress);
                   process.stdin.setRawMode(false);
                   await performAnalysis(project, filteredConversations[selectedIndex]);
+                  process.stdin.setRawMode(true);
+                  process.stdin.on('keypress', handleKeypress);
+                  renderList(project, filteredConversations, selectedIndex, searchTerm);
+                }
+                break;
+              case 'd':
+                if (filteredConversations.length > 0) {
+                  process.stdin.removeListener('keypress', handleKeypress);
+                  process.stdin.setRawMode(false);
+                  await confirmAndDelete(project, filteredConversations[selectedIndex]);
+                  filterConversations();
+                  selectedIndex = Math.min(
+                    selectedIndex,
+                    Math.max(0, filteredConversations.length - 1)
+                  );
                   process.stdin.setRawMode(true);
                   process.stdin.on('keypress', handleKeypress);
                   renderList(project, filteredConversations, selectedIndex, searchTerm);

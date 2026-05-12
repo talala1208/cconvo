@@ -131,7 +131,8 @@ function renderList(
   printLine();
   printLine(buildShortcutsHint(shortcuts, searchTerm !== null, lang));
 
-  flushRender();
+  // 保留底部空行与快捷键提示，避免终端较矮时被 flush 截断
+  flushRender({ preserveTailLines: 2 });
 }
 
 // 主函数

@@ -1,4 +1,5 @@
 import type readline from 'readline';
+import chalk from 'chalk';
 
 // TUI 模式状态标志
 let inTUI = false;
@@ -90,8 +91,13 @@ export function printLine(text: string = ''): void {
   }
 }
 
+/** flushRender 可选参数：超出终端高度时保留缓冲区末尾若干行 */
+export interface FlushRenderOptions {
+  preserveTailLines?: number;
+}
+
 // 将缓冲区内容一次性写入屏幕，截断至终端高度，防止溢出滚动
-export function flushRender(): void {
+export function flushRender(options?: FlushRenderOptions): void {
   if (screenBuffer === null) return;
 
   if (!process.stdout.isTTY) {
@@ -101,7 +107,23 @@ export function flushRender(): void {
   }
 
   const maxRows = (process.stdout.rows || 24) - 1; // 留一行余量防止边界滚动
-  const lines = screenBuffer.slice(0, maxRows);
+  const preserveTailLines = options?.preserveTailLines ?? 0;
+  let lines = screenBuffer;
+
+  if (lines.length > maxRows && preserveTailLines > 0) {
+    const tailLen = Math.min(preserveTailLines, lines.length);
+    const tail = lines.slice(-tailLen);
+    const sepLines = 1;
+    const headBudget = maxRows - tail.length - sepLines;
+    if (headBudget >= 1) {
+      const head = lines.slice(0, headBudget);
+      lines = [...head, chalk.gray('  ...'), ...tail];
+    } else {
+      lines = tail.slice(-maxRows);
+    }
+  } else if (lines.length > maxRows) {
+    lines = lines.slice(0, maxRows);
+  }
 
   // 合并为单次写入，减少系统调用，确保原子更新
   process.stdout.write(

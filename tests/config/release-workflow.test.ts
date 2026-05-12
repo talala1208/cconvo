@@ -17,12 +17,23 @@ describe('Release workflow (.github/workflows/release.yml)', () => {
   });
 
   it('YAML 语法应有效', () => {
-    const result = execSync(
-      `python3 -c "import yaml; yaml.safe_load(open('${workflowPath}'))"`,
-      { encoding: 'utf-8', cwd: ROOT },
+    // Windows 上常见仅有 `python`，Unix 上多为 `python3`；路径用 / 避免 Python 字符串转义问题
+    const pathForPy = workflowPath.replace(/\\/g, '/');
+    const snippet = `import yaml; yaml.safe_load(open('${pathForPy}', encoding='utf-8'))`;
+    let ok = false;
+    let lastErr = '';
+    for (const py of ['python3', 'python'] as const) {
+      try {
+        execSync(`${py} -c "${snippet}"`, { encoding: 'utf-8', cwd: ROOT });
+        ok = true;
+        break;
+      } catch (e) {
+        lastErr = e instanceof Error ? e.message : String(e);
+      }
+    }
+    expect(ok, `YAML 校验失败（需已安装 PyYAML 的 Python）。已尝试 python3、python。${lastErr}`).toBe(
+      true,
     );
-    // If python command succeeds (no exception), YAML is valid
-    expect(result).toBeDefined();
   });
 
   describe('workflow 内容验证', () => {
